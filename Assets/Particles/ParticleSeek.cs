@@ -1,48 +1,72 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class ParticleSeek : MonoBehaviour {
-
+[RequireComponent(typeof(ParticleSystem))]
+public class ParticleSeek : MonoBehaviour
+{
 	public Transform target;
 	public float force = 10.0f;
 
-	ParticleSystem ps;
+	new ParticleSystem particleSystem;
+	ParticleSystem.Particle[] particles;
 
-	// Use this for initialization
-	void Start () {
-		ps = GetComponent<ParticleSystem>();
+	ParticleSystem.MainModule particleSystemMainModule;
+
+	void Start()
+	{
+		particleSystem = GetComponent<ParticleSystem>();
+		particleSystemMainModule = particleSystem.main;
 	}
-	
-	// Update is called once per frame
-	void LateUpdate () {
-		ParticleSystem.Particle[] particles = 
-			new ParticleSystem.Particle[ps.particleCount];
-		
-		ps.GetParticles (particles);
 
-		for (int i = 0; i < particles.Length; i++) {
-			ParticleSystem.Particle p = particles [i];
+	void LateUpdate()
+	{
+		int maxParticles = particleSystemMainModule.maxParticles;
 
-			Vector3 particleWorldPosition;
-
-			if (ps.main.simulationSpace == ParticleSystemSimulationSpace.Local) {
-				particleWorldPosition = transform.TransformPoint (p.position);
-			} else if (ps.main.simulationSpace == ParticleSystemSimulationSpace.Custom) {
-				particleWorldPosition = ps.main.customSimulationSpace.TransformPoint (p.position);
-			} else {
-				particleWorldPosition = p.position;
-			}
-
-			Vector3 directonToTarget = (target.position - particleWorldPosition).normalized;
-
-			Vector3 seekForce = directonToTarget * force * Time.deltaTime;
-		
-			p.velocity += seekForce;
-
-			particles [i] = p;
+		if (particles == null || particles.Length < maxParticles)
+		{
+			particles = new ParticleSystem.Particle[maxParticles];
 		}
 
-		ps.SetParticles (particles, particles.Length);
+		particleSystem.GetParticles(particles);
+		float forceDeltaTime = force * Time.deltaTime;
+
+		Vector3 targetTransformedPosition;
+
+		switch (particleSystemMainModule.simulationSpace)
+		{
+		case ParticleSystemSimulationSpace.Local:
+			{
+				targetTransformedPosition = transform.InverseTransformPoint(target.position);
+				break;
+			}
+		case ParticleSystemSimulationSpace.Custom:
+			{
+				targetTransformedPosition = particleSystemMainModule.customSimulationSpace.InverseTransformPoint(target.position);
+				break;
+			}
+		case ParticleSystemSimulationSpace.World:
+			{
+				targetTransformedPosition = target.position;
+				break;
+			}
+		default:
+			{
+				throw new System.NotSupportedException(
+
+					string.Format("Unsupported simulation space '{0}'.",
+						System.Enum.GetName(typeof(ParticleSystemSimulationSpace), particleSystemMainModule.simulationSpace)));
+			}
+		}
+
+		int particleCount = particleSystem.particleCount;
+
+		for (int i = 0; i < particleCount; i++)
+		{
+			Vector3 directionToTarget = Vector3.Normalize(targetTransformedPosition - particles[i].position);
+			Vector3 seekForce = directionToTarget * forceDeltaTime;
+
+			particles[i].velocity += seekForce;
+		}
+
+		particleSystem.SetParticles(particles, particleCount);
 	}
 }
