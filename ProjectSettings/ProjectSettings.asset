@@ -452,7 +452,9 @@ PlayerSettings:
   XboxOneAllowedProductIds: []
   XboxOnePersistentLocalStorageSize: 0
   vrEditorSettings: {}
-  cloudServicesEnabled: {}
+  cloudServicesEnabled:
+    Build: 1
+    UNet: 1
   cloudProjectId: 3d9c15ce-565e-4643-9847-0a2a61591bd6
   projectName: particles-demo
   organizationId: john-mccabe
